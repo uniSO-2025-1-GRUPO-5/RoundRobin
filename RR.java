@@ -33,7 +33,7 @@ public class RR{
         String InOut[] = {"Disco","Fita magnética","Impressora"};
         System.out.println(String.format("Tempo Limite: %d", TQ));
         int TempoInit = 0;
-        int GuardaInOut = new int[PReq];
+        int[] GuardaInOut = new int[PReq];
         int[] GuardaBT = new int[PReq];
         for(int i=0;i<PReq;i++){
 
@@ -63,7 +63,7 @@ public class RR{
 
             int posicaoTipos = (int) ((a * X + c) % m) % 3;
             int posTotal = (posicaoTipos<0)?-posicaoTipos:posicaoTipos; //Substituição para Math.abs()
-            int MediaInOut[] = {30, 80, 120};
+            int[] MediaInOut = {30, 80, 120};
             GuardaInOut[i] = MediaInOut[posTotal];
             
             /* 
@@ -77,4 +77,5 @@ public class RR{
         /* ---------------------------- */
     }
 }
+
 

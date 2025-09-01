@@ -30,9 +30,10 @@ public class RR{
         PReqInput.close(); //Fecha scanner
 
 
-        String titulos[] = {"Disco","Fita magnética","Impressora"};
+        String InOut[] = {"Disco","Fita magnética","Impressora"};
         System.out.println(String.format("Tempo Limite: %d", TQ));
         int TempoInit = 0;
+        int GuardaInOut = new int[PReq];
         int[] GuardaBT = new int[PReq];
         for(int i=0;i<PReq;i++){
 
@@ -41,6 +42,7 @@ public class RR{
             * 1) Milisegundos do tempo atual com limite de valor 32,767
             * 2) Milisegundos x 1103515245 + 12345; & para que valor sempre seja positivo
             * 3) Se resultado de BTRVal for maior que o limite de BTLim, % corta valor de BTRVal para que ele seja menor ou igual à BTRVal
+            * 4) pega o short BT e guarda o burst time do processo
             */ 
             short Init = (short) System.nanoTime();
             int BTRVal = (Init * 1103515245 + 12345) & Integer.MAX_VALUE; 
@@ -61,15 +63,18 @@ public class RR{
 
             int posicaoTipos = (int) ((a * X + c) % m) % 3;
             int posTotal = (posicaoTipos<0)?-posicaoTipos:posicaoTipos; //Substituição para Math.abs()
+            int MediaInOut[] = {30, 80, 120};
+            GuardaInOut[i] = MediaInOut[posTotal];
             
             /* 
              * LCG - Linear congruential generator
              * X[n+1] = (a * X[n] + c) % m
              */ 
-            System.out.print(String.format("Processo %d (%s): %d\n",i+1,titulos[posTotal],GuardaBT[i]));
+            System.out.print(String.format("Processo %d (%s): BT=%d ms; InOut=%d ms\n", i+1,titulos[posTotal],GuardaBT[i], GuardaInOut[i]));
         
         }
         
         /* ---------------------------- */
     }
 }
+

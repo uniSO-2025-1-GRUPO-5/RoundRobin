@@ -9,10 +9,10 @@ Tempos de duração de cada tipo de I/O (disco, fita magnética e impressora); X
 Gerência de Processos: definição do PID, informações do PCB (prioridade, PID, PPID,
 status); X  
 
+Tipos de I/O: Disco → fila baixa; Fita magnética → fila alta; Impressora → fila alta; X
 
-Escalonador com pelo menos 3 filas: alta prioridade, baixa prioridade e fila(s) de I/O;
 
-Tipos de I/O: Disco → fila baixa; Fita magnética → fila alta; Impressora → fila alta;
+Escalonador com pelo menos 3 filas: alta prioridade, baixa prioridade e fila(s) de I/O; X
 
 Ordem de entrada na fila de prontos: novos processos → fila alta; processos de I/O → depende do tipo; preempção → fila baixa
  

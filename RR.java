@@ -11,9 +11,8 @@ public class RR{
         * Definição da fatia de tempo dada aos processos em execução; 
         */
         int PLim = 10; // Limite de criação de processos;
-        int TQ=50; // Time-Quantum; Tempo limite para cada processo; 20 milisegundos
         int PReq;
-        int BTLim = 1200; //Limite de Burst Time de 1.2 segundos
+        int BTLim = 2000; //Limite de Burst Time de 2 segundos
         /*-----------------------------------------------------------------*/
         
         /*GERAÇÃO DE PID*/
@@ -36,13 +35,12 @@ public class RR{
 
 
         String InOut[] = {"Disco","Fita magnética","Impressora"};
-        System.out.println(String.format("Tempo Limite: %d", TQ));
-        int TempoInit = 0;
+       
         int[] GuardaInOut = new int[PReq];
         int[] GuardaBT = new int[PReq];
         
         /*
-         * (Sem Parente:0;Parente:1;Filho:2),PID,PPID 
+         * (Sem Parente:0;Filho:1),PID,PPID 
          * [0,120,-1] Se sem parente            -> PPID = -1
          * [1,203,20] Se parente    -> PID,PPID
          */
@@ -50,7 +48,7 @@ public class RR{
         int[] GuardaPID = new int[PReq];
         String[] GuardaProcesso = new String[PReq];
 
-        System.out.printf("%-10s %-15s %-15s %-15s %-15s %-15s %-15s %-15s%n", "PID", "Processo X", "Tipo","BT","I/O","Filhos","Estado","Prioridade");
+        System.out.printf("%-10s %-15s %-15s %-15s %-15s %-15s %-15s %-15s%n", "PID", "Processo X", "Tipo","BT","I/O","Parentes","Estado","Prioridade");
 
 
         for(int i=0;i<PReq;i++){
@@ -134,7 +132,7 @@ public class RR{
             GuardaPID[i] = PID; //Guarda o PID atual
 
             /*
-             * 1) Guarda tipo de processo (Com filho ou sem)
+             * 1) Guarda tipo de processo (Com parente ou sem)
              * 2) Guarda PID atual
              * 3) Guarda relação PPID
              * 4) Guarda este array em uma matriz
@@ -146,7 +144,7 @@ public class RR{
             GuardaRelacaoPPID[i] = RelacaoPPID;
 
             /*
-             * Guarda: PID, Número do processo, Tipo de mídia, Burst Time, Velocidade de mídia, Prioridade (1,2,3)
+             * Guarda: PID, Número do processo, Tipo de mídia, Burst Time, Velocidade de mídia, Prioridade (0,1)
              */
             
             GuardaProcesso[i] = String.format("%d:%d:%d:%d:%d", PID,i+1,posTotal,GuardaBT[i],GuardaInOut[i]);   
@@ -305,15 +303,123 @@ public class RR{
                     PRIO="Alta";
                     break;                    
             }
-            // 1->Prioridade Alta; 0->Prioridade Baixa
-            GuardaProcesso[i]=String.format("%s:%s",GuardaProcesso[i],(Integer.parseInt(TIPO) > 0)?1:0);
+            // 1->Prioridade Alta; 0->Prioridade Baixa : Varreduras
+            GuardaProcesso[i]=String.format("%s:%s:%s",GuardaProcesso[i],(Integer.parseInt(TIPO) > 0)?1:0,"0");
 
             System.out.printf("%-10s %-15s %-15s %-15s %-15s %-15s %-15s %-15s%n", PID, String.format("Processo %s",PROC), InOut[Integer.parseInt(TIPO)],String.format("%s ms",BRST),String.format("%s ms",IO),PPID,STAT,PRIO);
         }
+        
+        /*
+         * Escalonador com pelo menos 3 filas: alta prioridade, baixa prioridade e fila(s) de I/O;
+         * For 1) Define tamanho das filas
+         * For 2) Define valor das filas (PIDs)
+         */
+        String[] P1,P2;
+        int[] FilaIO = new int[GuardaProcesso.length];
+        int FilaIOIDX=0;
+        int P1Len=0,P2Len=0;
         for(int i=0;i<GuardaProcesso.length;i++){
-            System.out.println(GuardaProcesso[i]);
+            int prioridades = Integer.parseInt(GuardaProcesso[i].split(":")[8]);
+            switch(prioridades){
+                case 0:
+                    P2Len+=1;
+                    break;
+                case 1:
+                    P1Len+=1;
+                    break;
+            }
         }
 
-       
+        P1 = new String[P1Len];
+        P2 = new String[P2Len];
+        
+        int p1Index = 0;
+        int p2Index = 0;
+        
+        for (int i = 0; i < GuardaProcesso.length; i++) {
+            int prioridades = Integer.parseInt(GuardaProcesso[i].split(":")[8]);
+            String Processo = GuardaProcesso[i];
+            switch (prioridades) {
+                case 0:
+                    P2[p2Index++] = Processo; 
+                    break;
+                case 1:
+                    P1[p1Index++] = Processo; 
+                    break;
+            }
+        }
+
+        System.out.print("#".repeat(49));
+        System.out.print(" LOG DE PROCESSO ");
+        System.out.print("#".repeat(52));
+
+        String SalvaProcesso=""; // BTRestate1:BTRestate2:BTRestate3:....
+        System.out.printf("%n%-10s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s%n", "PID", "Processo X", "Tipo","BT","I/O","Parentes","Estado","Prioridade","Execução","BT Restante","Varreduras");
+
+
+
+        /* 
+        >>>>>NESTA FASE O ARRAY QUE GUARDA OS PROCESSOS TEM 9 INDEXES <<<<<
+        *
+        * Ordem de entrada na fila de prontos: novos processos → fila alta; processos de I/O → depende do tipo; preempção → fila baixa
+        * 
+        * Processamento de processos com I/O e controle de preempção
+        * 1) Abre for loop
+        * 2) Extrai e converte valores de Burst Time, I/O Time e contador de varreduras
+        * 3) Define status do processo como "Em execução" (valor 1)
+        * 4) Simula execução do processo, decrementando BT para cada unidade de I/O time
+        * 5) Controla contador de preempção durante a execução
+        * 6) Atualiza BT restante se processo não completou execução
+        * 7) Finaliza processo (status 2) quando BT chega a zero e adiciona à fila de I/O para output
+        * 8) Incrementa contador de varreduras do processo
+        * 9) Gera saída formatada com status atualizado e informações do processo
+        *
+        * O mesmo deve ser feito para processos de prioridade baixa e FilaIO
+        * 
+        * Após lista de alta prioridade e baixa prioridade forem executadas e BT restante de algum processo for maior que 0, deixe-o esperando
+        * Printe quais processos foram terminados (eles estarão listados na FilaIO) 
+        * Depois de printar, repita o processo
+        *
+        * 1 > Prioridade Alta <-----------------|
+        * 2 > Prioridade Baixa                  |
+        * 3 > FilaIO                            |
+        * 4 > (Se BT de fila alta ou baixa > 0) |
+        */
+
+        for(int i=0;i<P1.length;i++){
+            String[] ProcessosP1 = P1[i].split(":");
+            int BT = Integer.parseInt(ProcessosP1[3]);
+            int BTVelho = BT;
+            int IOTempo = Integer.parseInt(ProcessosP1[4]);
+            int Varreduras = Integer.parseInt(ProcessosP1[9]);
+            ProcessosP1[6] = "1"; //Em execução
+            int Preempt = 0;
+            for(int j=0; j<IOTempo; j++){
+                Preempt++;
+                BT--;
+                
+                if(j == IOTempo - 1 && BT > 0){
+                    ProcessosP1[3] = String.format("%d", BT);
+                    SalvaProcesso = String.format("%s:%s", SalvaProcesso, BT);
+                }
+                if(BT == 0){
+                    ProcessosP1[6] = "2";
+                    FilaIO[FilaIOIDX++] = Integer.parseInt(ProcessosP1[0]);
+                    break;
+                }
+            }
+            ProcessosP1[9] = String.format("%d",Varreduras+1);
+            String STATUS="";
+            switch(Integer.parseInt(ProcessosP1[6])){
+                case 1:
+                    STATUS="Em execução";
+                    break;
+                case 2: 
+                    STATUS="Terminou";
+                    break;
+            }
+            System.out.printf("%-10s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s%n", ProcessosP1[0], String.format("Processo %s",ProcessosP1[1]), InOut[Integer.parseInt(ProcessosP1[2])],String.format("%s ms",BTVelho),String.format("%s ms",ProcessosP1[4]),ProcessosP1[5],STATUS,(Integer.parseInt(ProcessosP1[8]) > 0)?"Alta":"Baixa",String.format("%s ms",Preempt),BT,ProcessosP1[9]);
+        }
+
     }
 }

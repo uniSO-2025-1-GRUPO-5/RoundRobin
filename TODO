@@ -4,10 +4,11 @@ Definição da fatia de tempo dada aos processos em execução; X
 
 Tempos de serviço e de I/O aleatórios para cada processo criado; X
 
-Tempos de duração de cada tipo de I/O (disco, fita magnética e impressora);
+Tempos de duração de cada tipo de I/O (disco, fita magnética e impressora); X
 
 Gerência de Processos: definição do PID, informações do PCB (prioridade, PID, PPID,
-status);
+status); X 
+
 
 Escalonador com pelo menos 3 filas: alta prioridade, baixa prioridade e fila(s) de I/O;
 

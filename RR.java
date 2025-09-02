@@ -188,7 +188,7 @@ public class RR{
                     GuardaRelacaoPPID[i][0] = 0;
                     GuardaRelacaoPPID[i][2] = -1;
                 }
-            }
+            } 
              /*
              * Guarda PID, Número do processo, Tipo de mídia, Burst Time, Velocidade de mídia, Tipo de parentesco, PPID, Estado inicial 
              */

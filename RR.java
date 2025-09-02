@@ -146,7 +146,7 @@ public class RR{
             GuardaRelacaoPPID[i] = RelacaoPPID;
 
             /*
-             * Guarda PID, Número do processo, Tipo de mídia, Burst Time, Velocidade de mídia, Prioridade (1,2,3)
+             * Guarda: PID, Número do processo, Tipo de mídia, Burst Time, Velocidade de mídia, Prioridade (1,2,3)
              */
             
             GuardaProcesso[i] = String.format("%d:%d:%d:%d:%d", PID,i+1,posTotal,GuardaBT[i],GuardaInOut[i]);   
@@ -196,7 +196,11 @@ public class RR{
             GuardaProcesso[i] = String.format("%s:%s:%s:0",GuardaProcesso[i],GuardaRelacaoPPID[i][0],GuardaRelacaoPPID[i][2]);
         }
         
-        /*
+        /* 
+        * Esta parte específica explica a definição de prioridade com base no BT do processo.
+        * Comentada pois o enúnciado pedia "Tipos de I/O: Disco → fila baixa; Fita magnética → fila alta; Impressora → fila alta;"
+        * Mantendo comentada pois eu achei interessante e foi legal de fazer
+        *
         * Calculando média de BT para fornecer 3 prioridades
         * ETAPA 1 -> Organiza array de menor para maior
         * Método: Bubble sort
@@ -207,7 +211,7 @@ public class RR{
         * 5) Se conteúdo de OrganizadoBT maior que o próximo conteúdo de OrganizadoBT -> Temp será igual index atual; Index atual irá ser substituído pelo valor do próximo index; Próximo index será igual Temp
         * 6) Troca ocorreu
         * 7) Inicia while loop
-        */
+        
            
         int[] OrganizadoBT = new int[GuardaBT.length];
         System.arraycopy(GuardaBT, 0, OrganizadoBT, 0, GuardaBT.length);
@@ -243,7 +247,7 @@ public class RR{
          * 11)Se burst for maior que Média: Prioridade 3
          * 12)Se burst estiver no meio da Média (MediaMetade): Prioridade 2
          * 13)Guarda prioridade no GuardaProcesso
-         */
+         
         int Soma=0;
         int Conjunto = OrganizadoBT.length;
         for(int i=0;i<Conjunto;i++){
@@ -270,9 +274,9 @@ public class RR{
             }
             GuardaProcesso[i]=String.format("%s:%s",GuardaProcesso[i],prioridade);
         }
-
+        */
         /*
-         * Printa na tela informação inicial dos processos (por enquanto)
+         * Printa na tela informação inicial dos processos (por enquanto) 
          */
         for(int i=0;i<GuardaRelacaoPPID.length;i++){  
             String[] Processos = GuardaProcesso[i].split(":");
@@ -283,25 +287,31 @@ public class RR{
             String IO   = Processos[4];
             String PPID = Processos[6];
             String STAT = Processos[7];
-            String PRIO = Processos[8];
             if(Integer.parseInt(PPID) == -1){
                 PPID = "-";
             }
             if(Integer.parseInt(STAT) == 0){
                 STAT = "Parado";
             }
-            switch(Integer.parseInt(PRIO)){
-                case 1:
-                    PRIO="Alta";
-                    break;
-                case 2:
-                    PRIO="Média";
-                    break;
-                case 3:
+            String PRIO = "Baixa";
+            //{"Disco","Fita magnética","Impressora"};
+            //Tipos de I/O: Disco → fila baixa; Fita magnética → fila alta; Impressora → fila alta;
+            switch(Integer.parseInt(TIPO)){
+                case 0:
                     PRIO="Baixa";
+                    break;
+                case 1:
+                case 2:
+                    PRIO="Alta";
                     break;                    
             }
+            // 1->Prioridade Alta; 0->Prioridade Baixa
+            GuardaProcesso[i]=String.format("%s:%s",GuardaProcesso[i],(Integer.parseInt(TIPO) > 0)?1:0);
+
             System.out.printf("%-10s %-15s %-15s %-15s %-15s %-15s %-15s %-15s%n", PID, String.format("Processo %s",PROC), InOut[Integer.parseInt(TIPO)],String.format("%s ms",BRST),String.format("%s ms",IO),PPID,STAT,PRIO);
+        }
+        for(int i=0;i<GuardaProcesso.length;i++){
+            System.out.println(GuardaProcesso[i]);
         }
 
        

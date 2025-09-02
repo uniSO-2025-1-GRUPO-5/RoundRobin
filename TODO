@@ -15,3 +15,4 @@ Escalonador com pelo menos 3 filas: alta prioridade, baixa prioridade e fila(s) 
 Tipos de I/O: Disco → fila baixa; Fita magnética → fila alta; Impressora → fila alta;
 
 Ordem de entrada na fila de prontos: novos processos → fila alta; processos de I/O → depende do tipo; preempção → fila baixa
+ 

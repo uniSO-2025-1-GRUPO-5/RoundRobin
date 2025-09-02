@@ -50,7 +50,7 @@ public class RR{
         int[] GuardaPID = new int[PReq];
         String[] GuardaProcesso = new String[PReq];
 
-        System.out.printf("%-10s %-15s %-15s %-15s %-15s %-15s %-15s%n", "PID", "Processo X", "Tipo","BT","I/O","FILHOS","ESTADO");
+        System.out.printf("%-10s %-15s %-15s %-15s %-15s %-15s %-15s %-15s%n", "PID", "Processo X", "Tipo","BT","I/O","Filhos","Estado","Prioridade");
 
 
         for(int i=0;i<PReq;i++){
@@ -146,8 +146,9 @@ public class RR{
             GuardaRelacaoPPID[i] = RelacaoPPID;
 
             /*
-             * Guarda PID, Número do processo, Tipo de mídia, Burst Time, Velocidade de mídia
+             * Guarda PID, Número do processo, Tipo de mídia, Burst Time, Velocidade de mídia, Prioridade (1,2,3)
              */
+            
             GuardaProcesso[i] = String.format("%d:%d:%d:%d:%d", PID,i+1,posTotal,GuardaBT[i],GuardaInOut[i]);   
         
         }
@@ -190,9 +191,84 @@ public class RR{
                 }
             } 
              /*
-             * Guarda PID, Número do processo, Tipo de mídia, Burst Time, Velocidade de mídia, Tipo de parentesco, PPID, Estado inicial 
+             * Guarda: PID, Número do processo, Tipo de mídia, Burst Time, Velocidade de mídia, Tipo de parentesco, PPID, Estado inicial 
              */
             GuardaProcesso[i] = String.format("%s:%s:%s:0",GuardaProcesso[i],GuardaRelacaoPPID[i][0],GuardaRelacaoPPID[i][2]);
+        }
+        
+        /*
+        * Calculando média de BT para fornecer 3 prioridades
+        * ETAPA 1 -> Organiza array de menor para maior
+        * Método: Bubble sort
+        * 1) Define array OrganizadoBT
+        * 2) Copia GuardaBT para OrganizadoBT
+        * 3) Abre while loop
+        * 4) Abre for loop
+        * 5) Se conteúdo de OrganizadoBT maior que o próximo conteúdo de OrganizadoBT -> Temp será igual index atual; Index atual irá ser substituído pelo valor do próximo index; Próximo index será igual Temp
+        * 6) Troca ocorreu
+        * 7) Inicia while loop
+        */
+           
+        int[] OrganizadoBT = new int[GuardaBT.length];
+        System.arraycopy(GuardaBT, 0, OrganizadoBT, 0, GuardaBT.length);
+        
+        boolean troca;
+        do {
+            troca = false;
+            for (int i = 0; i < OrganizadoBT.length - 1; i++) {
+                if (OrganizadoBT[i] > OrganizadoBT[i+1]) {
+                    
+                    int temp = OrganizadoBT[i];
+                    OrganizadoBT[i] = OrganizadoBT[i+1];
+                    OrganizadoBT[i+1] = temp;
+                    troca = true;
+                }
+            }
+        } while (troca);
+
+        /*
+         * ETAPA 2 -> Calcula média de todos os valores dentro de OrganizadoBT
+         * 1) Define soma
+         * 2) Define conjunto
+         * Me = (X0+X1+X2...+Xn)/Conjunto
+         * 3) Abre loop e soma todos os valores de OrganizadoBT em "Soma"
+         * 4) Calcula média na variável "Média"
+         * 
+         * 5) Abre loop para definir prioridade
+         * 6) Importa processos guardados
+         * 7) Importa Burst time de Processos
+         * 8) Define meio da média ao dividir Média por 2
+         * 9) Define valor padrão para prioridade
+         * 10)Se burst for menor que Media: Prioridade 1
+         * 11)Se burst for maior que Média: Prioridade 3
+         * 12)Se burst estiver no meio da Média (MediaMetade): Prioridade 2
+         * 13)Guarda prioridade no GuardaProcesso
+         */
+        int Soma=0;
+        int Conjunto = OrganizadoBT.length;
+        for(int i=0;i<Conjunto;i++){
+            Soma+=OrganizadoBT[i];
+        }
+        int Media = Soma/Conjunto;
+
+        for(int i=0;i<GuardaRelacaoPPID.length;i++){
+            String[] Processos = GuardaProcesso[i].split(":");
+            int BRST = Integer.parseInt(Processos[3]);
+            int MediaMetade = Media/2;
+            int prioridade=3;
+            if(BRST < Media){
+                prioridade=1;
+            }
+            if(BRST >= Media){
+                prioridade=3;
+            }
+            if(BRST <= MediaMetade && !(BRST < Media)){
+                prioridade=2;
+            }
+            if(BRST >= MediaMetade && !(BRST > Media)){
+                prioridade=2;
+            }
+            GuardaProcesso[i]=String.format("%s:%s",GuardaProcesso[i],prioridade);
         }
 
         /*
@@ -207,14 +283,27 @@ public class RR{
             String IO   = Processos[4];
             String PPID = Processos[6];
             String STAT = Processos[7];
+            String PRIO = Processos[8];
             if(Integer.parseInt(PPID) == -1){
                 PPID = "-";
             }
             if(Integer.parseInt(STAT) == 0){
                 STAT = "Parado";
             }
-            System.out.printf("%-10s %-15s %-15s %-15s %-15s %-15s %-15s%n", PID, String.format("Processo %s",PROC), InOut[Integer.parseInt(TIPO)],String.format("%s ms",BRST),String.format("%s ms",IO),PPID,STAT);
+            switch(Integer.parseInt(PRIO)){
+                case 1:
+                    PRIO="Alta";
+                    break;
+                case 2:
+                    PRIO="Média";
+                    break;
+                case 3:
+                    PRIO="Baixa";
+                    break;                    
+            }
+            System.out.printf("%-10s %-15s %-15s %-15s %-15s %-15s %-15s %-15s%n", PID, String.format("Processo %s",PROC), InOut[Integer.parseInt(TIPO)],String.format("%s ms",BRST),String.format("%s ms",IO),PPID,STAT,PRIO);
         }
-        /* ---------------------------- */
+
+       
     }
 }

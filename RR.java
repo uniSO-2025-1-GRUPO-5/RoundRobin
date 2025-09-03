@@ -12,7 +12,7 @@ public class RR{
         */
         int PLim = 10; // Limite de criação de processos;
         int PReq;
-        int BTLim = 2000; //Limite de Burst Time de 2 segundos
+        int BTLim = 1200; //Limite de Burst Time de 1.2 segundos
         /*-----------------------------------------------------------------*/
         
         /*GERAÇÃO DE PID*/
@@ -352,114 +352,283 @@ public class RR{
         System.out.print("#".repeat(49));
         System.out.print(" LOG DE PROCESSO ");
         System.out.print("#".repeat(52));
-
-        String SalvaProcesso=""; // BTRestate1:BTRestate2:BTRestate3:....
         System.out.printf("%n%-10s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s%n", "PID", "Processo X", "Tipo","BT","I/O","Parentes","Estado","Prioridade","Execução","BT Restante","Varreduras");
 
 
 
-        /* 
-        >>>>>NESTA FASE O ARRAY QUE GUARDA OS PROCESSOS TEM 9 INDEXES <<<<<
-        *
-        * Ordem de entrada na fila de prontos: novos processos → fila alta; processos de I/O → depende do tipo; preempção → fila baixa
+       /*
+        * Escalonamento e processamento
+        * Estrutura:
+        *   3 filas de prioridade: Alta (P1) e Baixa (P2), FilaIO (I/O) para processos terminados
         * 
-        * Processamento de processos com I/O e controle de preempção
-        * 1) Abre for loop
-        * 2) Extrai e converte valores de Burst Time, I/O Time e contador de varreduras
-        * 3) Define status do processo como "Em execução" (valor 1)
-        * 4) Simula execução do processo, decrementando BT para cada unidade de I/O time
-        * 5) Controla contador de preempção durante a execução
-        * 6) Atualiza BT restante se processo não completou execução
-        * 7) Finaliza processo (status 2) quando BT chega a zero e adiciona à fila de I/O para output
-        * 8) Incrementa contador de varreduras do processo
-        * 9) Gera saída formatada com status atualizado e informações do processo
-        *
-        * O mesmo deve ser feito para processos de prioridade baixa e FilaIO
+        * Fluxo:
+        *   1) Processa fila de alta prioridade (P1)
+        *   2) Processa fila de baixa prioridade (P2)
+        *   3) Processos com BT > 0 permanecem em espera
+        *   4) Processos finalizados são movidos para FilaIO
+        *   5) Repete ciclos até conclusão de todos os processos
         * 
-        * Após lista de alta prioridade e baixa prioridade forem executadas e BT restante de algum processo for maior que 0, deixe-o esperando
-        * Printe quais processos foram terminados (eles estarão listados na FilaIO) 
-        * Depois de printar, repita o processo
-        *
-        * 1 > Prioridade Alta <-----------------|
-        * 2 > Prioridade Baixa                  |
-        * 3 > FilaIO                            |
-        * 4 > (Se BT de fila alta ou baixa > 0) |
+        * Processamento:
+        *   Extrai e converte valores de BT, I/O Time e contador de varreduras
+        *   Define status como "Em execução" durante processamento
+        *   BT-1 para cada unidade de I/O time processada
+        *   Controla contador de preempção durante a execução
+        *   Atualiza BT restante se processo não for completo até final do ciclo
+        *   Finaliza processo (status 2) quando BT chega a zero e manda para FilaIO
         */
+        boolean todosTerminados = false;
+        int ciclo = 1;
 
-        for(int i=0;i<P1.length;i++){
-            String[] ProcessosP1 = P1[i].split(":");
-            int BT = Integer.parseInt(ProcessosP1[3]);
-            int BTVelho = BT;
-            int IOTempo = Integer.parseInt(ProcessosP1[4]);
-            int Varreduras = Integer.parseInt(ProcessosP1[9]);
-            ProcessosP1[6] = "1"; //Em execução
-            int Preempt = 0;
-            for(int j=0; j<IOTempo; j++){
-                Preempt++;
-                BT--;
+        while (!todosTerminados) {
+            System.out.printf("\n--- Ciclo %d ---\n",ciclo);
+            FilaIOIDX = 0; 
+            todosTerminados = true;
+            
+
+            for(int i = 0; i < P1.length; i++) {
+                String[] ProcessosP1 = P1[i].split(":");
+                if (ProcessosP1.length < 10) continue;
                 
-                if(j == IOTempo - 1 && BT > 0){
-                    ProcessosP1[3] = String.format("%d", BT);
-                    SalvaProcesso = String.format("%s:%s", SalvaProcesso, BT);
-                }
-                if(BT == 0){
-                    ProcessosP1[6] = "2";
-                    FilaIO[FilaIOIDX++] = Integer.parseInt(ProcessosP1[0]);
-                    break;
-                }
-            }
-            ProcessosP1[9] = String.format("%d",Varreduras+1);
-            String STATUS="";
-            switch(Integer.parseInt(ProcessosP1[6])){
-                case 1:
-                    STATUS="Em execução";
-                    break;
-                case 2: 
-                    STATUS="Terminou";
-                    break;
-            }
-            System.out.printf("%-10s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s%n", ProcessosP1[0], String.format("Processo %s",ProcessosP1[1]), InOut[Integer.parseInt(ProcessosP1[2])],String.format("%s ms",BTVelho),String.format("%s ms",ProcessosP1[4]),ProcessosP1[5],STATUS,(Integer.parseInt(ProcessosP1[8]) > 0)?"Alta":"Baixa",String.format("%s ms",Preempt),BT,ProcessosP1[9]);
-        }
 
-        for(int i=0;i<P2.length;i++){
-            String[] ProcessosP2 = P2[i].split(":");
-            int BT = Integer.parseInt(ProcessosP2[3]);
-            int BTVelho = BT;
-            int IOTempo = Integer.parseInt(ProcessosP2[4]);
-            int Varreduras = Integer.parseInt(ProcessosP2[9]);
-            ProcessosP2[6] = "1"; // Em execução
-            int Preempt = 0;
-            for(int j=0; j<IOTempo; j++){
-                Preempt++;
-                BT--;
+                if (ProcessosP1[6].equals("2")) {
+                    continue;
+                }
+                
+                int BT = Integer.parseInt(ProcessosP1[3]);
+                int BTVelho = BT;
+                int IOTempo = Integer.parseInt(ProcessosP1[4]);
+                int Varreduras = Integer.parseInt(ProcessosP1[9]);
+                
 
-                if(j == IOTempo - 1 && BT > 0){
-                    ProcessosP2[3] = String.format("%d", BT);
-                    SalvaProcesso = String.format("%s:%s", SalvaProcesso, BT);
-                }
-                if(BT == 0){
-                    ProcessosP2[6] = "2";
-                    FilaIO[FilaIOIDX++] = Integer.parseInt(ProcessosP2[0]);
-                    break;
+                if (BT > 0) {
+                    todosTerminados = false;
+                    ProcessosP1[6] = "1"; // Em execução
+                    int Preempt = 0;
+                    
+                    for(int j = 0; j < IOTempo; j++) {
+                        Preempt++;
+                        BT--;
+                        
+                        if(BT == 0) {
+                            ProcessosP1[6] = "2"; // Terminou
+                            FilaIO[FilaIOIDX++] = Integer.parseInt(ProcessosP1[0]);
+                            break;
+                        }
+                        
+
+                        if(j == IOTempo - 1 && BT > 0) {
+                            ProcessosP1[3] = String.valueOf(BT);
+                        }
+                    }
+                    
+                    ProcessosP1[9] = String.valueOf(Varreduras + 1);
+                    String STATUS = "";
+                    switch(Integer.parseInt(ProcessosP1[6])) {
+                        case 1:
+                            STATUS = "Em execução";
+                            break;
+                        case 2: 
+                            STATUS = "Terminou";
+                            break;
+                        default:
+                            STATUS = "Pronto";
+                            break;
+                    }
+                    
+                    System.out.printf("%-10s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s%n", 
+                        ProcessosP1[0], 
+                        String.format("Processo %s", ProcessosP1[1]), 
+                        InOut[Integer.parseInt(ProcessosP1[2])],
+                        String.format("%d ms", BTVelho),
+                        String.format("%s ms", ProcessosP1[4]),
+                        ProcessosP1[5],
+                        STATUS,
+                        (Integer.parseInt(ProcessosP1[8]) > 0) ? "Alta" : "Baixa",
+                        String.format("%d ms", Preempt),
+                        BT,
+                        ProcessosP1[9]);
+                    
+  
+                    P1[i] = String.join(":", ProcessosP1);
                 }
             }
-            ProcessosP2[9] = String.format("%d",Varreduras+1);
-            String STATUS="";
-            switch(Integer.parseInt(ProcessosP2[6])){
-                case 1:
-                    STATUS="Em execução";
-                    break;
-                case 2: 
-                    STATUS="Terminou";
-                    break;
+            
+            for(int i = 0; i < P2.length; i++) {
+                String[] ProcessosP2 = P2[i].split(":");
+                if (ProcessosP2.length < 10) continue;
+                
+
+                if (ProcessosP2[6].equals("2")) {
+                    continue;
+                }
+                
+                int BT = Integer.parseInt(ProcessosP2[3]);
+                int BTVelho = BT;
+                int IOTempo = Integer.parseInt(ProcessosP2[4]);
+                int Varreduras = Integer.parseInt(ProcessosP2[9]);
+
+                if (BT > 0) {
+                    todosTerminados = false;
+                    ProcessosP2[6] = "1"; // Em execução
+                    int Preempt = 0;
+                    
+                    for(int j = 0; j < IOTempo; j++) {
+                        Preempt++;
+                        BT--;
+                        
+                        if(BT == 0) {
+                            ProcessosP2[6] = "2"; // Terminou
+                            FilaIO[FilaIOIDX++] = Integer.parseInt(ProcessosP2[0]);
+                            break;
+                        }
+                        
+      
+                        if(j == IOTempo - 1 && BT > 0) {
+                            ProcessosP2[3] = String.valueOf(BT);
+                        }
+                    }
+                    
+                    ProcessosP2[9] = String.valueOf(Varreduras + 1);
+                    String STATUS = "";
+                    switch(Integer.parseInt(ProcessosP2[6])) {
+                        case 1:
+                            STATUS = "Em execução";
+                            break;
+                        case 2: 
+                            STATUS = "Terminou";
+                            break;
+                        default:
+                            STATUS = "Pronto";
+                            break;
+                    }
+                    
+                    System.out.printf("%-10s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s%n", 
+                        ProcessosP2[0], 
+                        String.format("Processo %s", ProcessosP2[1]), 
+                        InOut[Integer.parseInt(ProcessosP2[2])],
+                        String.format("%d ms", BTVelho),
+                        String.format("%s ms", ProcessosP2[4]),
+                        ProcessosP2[5],
+                        STATUS,
+                        (Integer.parseInt(ProcessosP2[8]) > 0) ? "Alta" : "Baixa",
+                        String.format("%d ms", Preempt),
+                        BT,
+                        ProcessosP2[9]);
+                    
+                  
+                    P2[i] = String.join(":", ProcessosP2);
+                }
             }
-        System.out.printf("%-10s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s%n", ProcessosP2[0], String.format("Processo %s",ProcessosP2[1]), InOut[Integer.parseInt(ProcessosP2[2])], String.format("%s ms",BTVelho),String.format("%s ms", ProcessosP2[4]), ProcessosP2[5], STATUS, (Integer.parseInt(ProcessosP2[8]) > 0)?"Alta":"Baixa", String.format("%s ms",Preempt), BT, ProcessosP2[9]);
-       
-        System.out.println("\n--- Fila de I/O ---");
-        for(int i=0;i<FilaIOIDX;i++){
-            int pidIO = FilaIO[i];
-            System.out.println("Processo PID " + pidIO + " terminou a execução e saiu.");
+
+            System.out.println("\n--- Fila de I/O ---");
+            if (FilaIOIDX == 0) {
+                System.out.println("Nenhum processo terminou neste ciclo.");
+            } else {
+                for(int j = 0; j < FilaIOIDX; j++) {
+                    int pidIO = FilaIO[j];
+                    System.out.println("Processo PID " + pidIO + " terminou a execução e saiu.");
+                }
+            }
+            
+     
+            System.out.println("\n--- Processos em espera ---");
+            boolean processosEmEspera = false;
+            
+            for(int i = 0; i < P1.length; i++) {
+                String[] processo = P1[i].split(":");
+                int BT = Integer.parseInt(processo[3]);
+                if(BT > 0 && !processo[6].equals("2")) {
+                    System.out.println("Processo PID " + processo[0] + " aguardando (BT restante: " + BT + " ms)");
+                    processosEmEspera = true;
+                }
+            }
+            
+            for(int i = 0; i < P2.length; i++) {
+                String[] processo = P2[i].split(":");
+                int BT = Integer.parseInt(processo[3]);
+                if(BT > 0 && !processo[6].equals("2")) {
+                    System.out.println("Processo PID " + processo[0] + " aguardando (BT restante: " + BT + " ms)");
+                    processosEmEspera = true;
+                }
+            }
+            
+            if (!processosEmEspera) {
+                System.out.println("Nenhum processo em espera.");
+            }
+            
+            ciclo++;
+            
+            
+            if (todosTerminados) {
+             
+                boolean verificaTerminados = true;
+                for(int i = 0; i < P1.length; i++) {
+                    String[] processo = P1[i].split(":");
+                    int BT = Integer.parseInt(processo[3]);
+                    if(BT > 0 && !processo[6].equals("2")) {
+                        verificaTerminados = false;
+                        break;
+                    }
+                }
+                for(int i = 0; i < P2.length; i++) {
+                    String[] processo = P2[i].split(":");
+                    int BT = Integer.parseInt(processo[3]);
+                    if(BT > 0 && !processo[6].equals("2")) {
+                        verificaTerminados = false;
+                        break;
+                    }
+                }
+                todosTerminados = verificaTerminados;
+            }
         }
+        /*
+        * Cálculos finais de desempenho do sistema
+        * Tempo total decorrido: número de ciclos completos executados
+        * Wait Time: soma de todos os tempos de espera de cada processo dividido pelo número de processos
+        * TAT (Turn Around Time): tempo desde a criação até a conclusão do processo
+        */
+        int tempoTotal = ciclo - 1; // Ciclos completos executados
+        double waitTimeTotal = 0;
+        double tatTotal = 0;
+        int processosCompletos = 0;
+        
+        // Calcular wait time e TAT para processos em P1
+        for(int i = 0; i < P1.length; i++) {
+            String[] processo = P1[i].split(":");
+            if (processo[6].equals("2")) { // Processo terminado
+                int varreduras = Integer.parseInt(processo[9]);
+                int tempoEspera = varreduras - 1; // Wait time = número de vezes que foi escalonado - 1
+                waitTimeTotal += tempoEspera;
+                tatTotal += varreduras; // TAT = número total de vezes que foi processado
+                processosCompletos++;
+            }
+        }
+        
+        // Calcular wait time e TAT para processos em P2
+        for(int i = 0; i < P2.length; i++) {
+            String[] processo = P2[i].split(":");
+            if (processo[6].equals("2")) { // Processo terminado
+                int varreduras = Integer.parseInt(processo[9]);
+                int tempoEspera = varreduras - 1; // Wait time = número de vezes que foi escalonado - 1
+                waitTimeTotal += tempoEspera;
+                tatTotal += varreduras; // TAT = número total de vezes que foi processado
+                processosCompletos++;
+            }
+        }
+        
+        // Calcular médias
+        double waitTimeMedio = (processosCompletos > 0) ? waitTimeTotal / processosCompletos : 0;
+        double tatMedio = (processosCompletos > 0) ? tatTotal / processosCompletos : 0;
+        
+        /*
+        * Exibir resultados dos cálculos de desempenho
+        */
+        System.out.println("-".repeat(80));
+        System.out.printf("Tempo total de processamento decorrido: %d ciclos%n", tempoTotal);
+        System.out.printf("Wait Time médio: %.2f ciclos%n", waitTimeMedio);
+        System.out.printf("Turn Around Time (TAT) médio: %.2f ciclos%n", tatMedio);
+        System.out.printf("Processos completados: %d/%d%n", processosCompletos, PReq);
+        System.out.println("-".repeat(80));
+        
     }
-
 }

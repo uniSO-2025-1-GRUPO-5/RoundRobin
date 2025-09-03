@@ -14,5 +14,5 @@ Tipos de I/O: Disco → fila baixa; Fita magnética → fila alta; Impressora �
 
 Escalonador com pelo menos 3 filas: alta prioridade, baixa prioridade e fila(s) de I/O; X
 
-Ordem de entrada na fila de prontos: novos processos → fila alta; processos de I/O → depende do tipo; preempção → fila baixa
+Ordem de entrada na fila de prontos: novos processos → fila alta; processos de I/O → depende do tipo; preempção → fila baixa X
  

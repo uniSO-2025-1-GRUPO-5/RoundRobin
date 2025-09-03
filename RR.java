@@ -421,5 +421,45 @@ public class RR{
             System.out.printf("%-10s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s%n", ProcessosP1[0], String.format("Processo %s",ProcessosP1[1]), InOut[Integer.parseInt(ProcessosP1[2])],String.format("%s ms",BTVelho),String.format("%s ms",ProcessosP1[4]),ProcessosP1[5],STATUS,(Integer.parseInt(ProcessosP1[8]) > 0)?"Alta":"Baixa",String.format("%s ms",Preempt),BT,ProcessosP1[9]);
         }
 
+        for(int i=0;i<P2.length;i++){
+            String[] ProcessosP2 = P2[i].split(":");
+            int BT = Integer.parseInt(ProcessosP2[3]);
+            int BTVelho = BT;
+            int IOTempo = Integer.parseInt(ProcessosP2[4]);
+            int Varreduras = Integer.parseInt(ProcessosP2[9]);
+            ProcessosP2[6] = "1"; // Em execução
+            int Preempt = 0;
+            for(int j=0; j<IOTempo; j++){
+                Preempt++;
+                BT--;
+
+                if(j == IOTempo - 1 && BT > 0){
+                    ProcessosP2[3] = String.format("%d", BT);
+                    SalvaProcesso = String.format("%s:%s", SalvaProcesso, BT);
+                }
+                if(BT == 0){
+                    ProcessosP2[6] = "2";
+                    FilaIO[FilaIOIDX++] = Integer.parseInt(ProcessosP2[0]);
+                    break;
+                }
+            }
+            ProcessosP2[9] = String.format("%d",Varreduras+1);
+            String STATUS="";
+            switch(Integer.parseInt(ProcessosP2[6])){
+                case 1:
+                    STATUS="Em execução";
+                    break;
+                case 2: 
+                    STATUS="Terminou";
+                    break;
+            }
+        System.out.printf("%-10s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s%n", ProcessosP2[0], String.format("Processo %s",ProcessosP2[1]), InOut[Integer.parseInt(ProcessosP2[2])], String.format("%s ms",BTVelho),String.format("%s ms", ProcessosP2[4]), ProcessosP2[5], STATUS, (Integer.parseInt(ProcessosP2[8]) > 0)?"Alta":"Baixa", String.format("%s ms",Preempt), BT, ProcessosP2[9]);
+       
+        System.out.println("\n--- Fila de I/O ---");
+        for(int i=0;i<FilaIOIDX;i++){
+            int pidIO = FilaIO[i];
+            System.out.println("Processo PID " + pidIO + " terminou a execução e saiu.");
+        }
     }
+
 }
